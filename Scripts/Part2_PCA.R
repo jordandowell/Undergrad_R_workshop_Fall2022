@@ -33,7 +33,7 @@ names(x)[44:45]<-c("PlantID","Genotype")
 x[,45]<-as.factor(x[,45])
 
 
-#PCA of flavenoids and phenolics
+#PCA of Metabolite variation
 
 
 Metabolite.PCA <- prcomp(x[,1:43], center = T, scale. = T)
@@ -41,13 +41,13 @@ Metabolite.PCA <- prcomp(x[,1:43], center = T, scale. = T)
 
 #produce eigenvalue plot
 
-pdf("OUTPUT/FlavPhen_eigen.pdf")
+pdf("OUTPUT/Metabolite_eigen.pdf")
 fviz_eig(Metabolite.PCA, choice = "eigenvalue", addlabels = T)
 dev.off()
 
 
 #produce variable loading plots
-pdf("OUTPUT/FlavPhen_VariableLoading_axes_1_2.pdf")
+pdf("OUTPUT/Metabolite_VariableLoading_axes_1_2.pdf")
 fviz_pca_var(
   Metabolite.PCA,
   axes = c(1, 2),
@@ -61,8 +61,7 @@ fviz_pca_var(
 dev.off()
 
 #produce plot of individuals labels by core 12
-pdf("OUTPUT/FlavPhen_IndividualLoading_axes_1_2.pdf")
-PCA.IND <-
+pdf("OUTPUT/Metabolite_IndividualLoading_axes_1_2.pdf")
   fviz_pca_ind(
     Metabolite.PCA,
     geom.ind = "point",
@@ -71,14 +70,14 @@ PCA.IND <-
     col.ind = x$Genotype,
     mean.point = F
   )
-
-#assess cos2
+dev.off()
+#assess cos2 this is a metric of how well the variable is explaned by the component
 
 var <- get_pca_var(Metabolite.PCA)
 
 
 #create plot for Cos2
-pdf("OUTPUT/FlavPhen_cos2.pdf")
+pdf("OUTPUT/Metabolite_cos2.pdf")
 corrplot(
   var$cos2,
   method = "color",
@@ -86,7 +85,7 @@ corrplot(
   insig = "p-value",
   sig.level = 0.01,
   outline = T,
-  cl.lim = c(0, 1),
+  #cl.lim = c(0, 1),
   is.corr = FALSE
 )
 dev.off()
@@ -94,7 +93,7 @@ dev.off()
 
 
 
-system(say "I'm Done")
+
 
 
 bf <-
@@ -147,12 +146,9 @@ for (l in 1:43) {
 
 View(BF_TTest_results)
 
-write.csv(ECOPHYS_results, "OUTPUT/Ecophys_violinplots_breed.csv")
+write.csv(BF_TTest_results, "OUTPUT/BF_TTest_results_violinplots.csv")
 
 
 
 
 
-
-#summary statistics!
-describe.by()
