@@ -1,0 +1,235 @@
+
+#metabolomics workshop 
+#install and library the belowpackages
+
+
+if (!requireNamespace('BiocManager', quietly = TRUE))
+  install.packages('BiocManager')
+BiocManager::install('EnhancedVolcano')
+BiocManager::install("RcppArmadillo")
+BiocManager::install("BHC")
+install_github("vqv/ggbiplot")
+library(EnhancedVolcano)
+library(devtools)
+a
+yes
+
+library(ggbiplot)
+
+library(bclust)
+
+#check proper working directory
+setwd("~/Desktop/ComplexDataMetabolomics")
+
+metabolome<- read.csv("S.enterica_metabolome_rida.csv",
+                      header = T,
+                      row.names = 1)
+#data engineering
+View(metabolome)
+META<-(metabolome[-1])
+View(META)
+
+##Construct Volcano plots based on t-test & logfold change
+#transpose data
+VOLCANO_META<-t(META)
+View(VOLCANO_META)
+
+t.test(VOLCANO_META[1, 1:6], VOLCANO_META[1, 7:12])
+
+ttestRat <- function(df, grp1, grp2) {
+  x = df[grp1]
+  y = df[grp2]
+  x = as.numeric(x)
+  y = as.numeric(y)
+  results = t.test(x, y)
+  results$p.value
+}
+rawpvalue = apply(VOLCANO_META,
+                  1,
+                  ttestRat,
+                  grp1 = c(1:6),
+                  grp2 = c(7:12))
+hist(rawpvalue)
+
+
+##transform our data into log10 base.
+VOLCANO_META_log = log(VOLCANO_META)
+
+#calculate the mean of each compound per control group
+WILD = apply(VOLCANO_META_log[, 1:6], 1, mean)
+
+#calcuate the mean of each compound per test group
+SINGLE_KO = apply(VOLCANO_META_log[, 7:12], 1, mean)
+
+WILD_SINGLE_FOLDCHANGE <- WILD - SINGLE_KO
+
+hist(WILD_SINGLE_FOLDCHANGE, xlab = "log2 Fold Change (WILD vs SINGLE_KO)")
+
+
+#create a results table
+
+results = cbind(WILD_SINGLE_FOLDCHANGE, rawpvalue)
+results = as.data.frame(results)
+results$probename <- rownames(results)
+
+View(results)
+#visualize with a volcano plot
+dev.off()
+DifferentialMETS <-
+  EnhancedVolcano(
+    toptable = results,
+    x = "WILD_SINGLE_FOLDCHANGE",
+    y = "rawpvalue",
+    lab = rownames(results),
+    xlab = bquote( ~ Log[10] ~ "fold change"),
+    pCutoff = 0.05 / length(results),
+    FCcutoff = 1.0,
+    xlim = c(min(results[, 1], na.rm = TRUE),
+             max(results[, 1], na.rm = TRUE) + 1),
+    ylim = c(0, max(-log10(results[, 2]), na.rm = TRUE) + 1),
+    title = 'Volcano plot',
+    subtitle = 'Differentially Produced Metabolites in single RidA KO',
+    caption = paste0('Total = ', nrow(results) + 1, ' metabolites'),
+    gridlines.major = FALSE,
+    gridlines.minor = FALSE,
+    # boxedlabels = TRUE,
+    legend = c("NS", "Log10 FC", "P", "P & Log10 FC"),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 4.0,
+    drawConnectors = TRUE,
+    widthConnectors = 0.2,
+    colConnectors = 'grey30'
+  )
+
+
+#View plot
+DifferentialMETS
+
+
+
+
+#PCA to visualize clusters
+
+View(metabolome)
+
+#PCA run
+RIDA.pca <- prcomp(metabolome[, 2:ncol(metabolome)],
+                   center = TRUE,
+                   scale. = TRUE)
+
+#assess the scree plot  look for inflection point.
+#Visually how many component?
+plot(RIDA.pca, type = "l")
+
+#assess components quatitatively
+summary(RIDA.pca)
+
+#PC 1&2
+ggbiplot(
+  RIDA.pca,
+  choices = c(1, 2),
+  ellipse.prob = 0.95,
+  obs.scale = 1,
+  var.scale = 1,
+  groups = metabolome$treatment,
+  labels = rownames(metabolome),
+  var.axes = FALSE,
+  ellipse = TRUE,
+  circle = FALSE
+) +
+  scale_color_discrete(name = '') +
+  theme_bw()+theme(legend.direction = 'horizontal', legend.position = 'top')
+
+
+#lets assess another group of PCs
+#PC 2&3
+ggbiplot(
+  RIDA.pca,
+  choices = c(2, 3),
+  obs.scale = 1,
+  var.scale = 1,
+  ellipse.prob = 0.95,
+  groups = metabolome$treatment,
+  labels = rownames(metabolome),
+  var.axes = FALSE,
+  ellipse = TRUE,
+  circle = FALSE
+) +
+  scale_color_discrete(name = '') +
+  theme_bw()+theme(legend.direction = 'horizontal', legend.position = 'top')
+
+#futher shows that theres no dosage effect
+
+
+
+
+#High-Dimensional Bayesian Clustering with Variable Selection
+META<-scale(META)
+#mean
+rownames(META)
+View(META)
+
+meansumsq <- meancss(META, rownames(META))
+optimfunc <-
+  function(phi) {
+    -loglikelihood(
+      x.mean = meansumsq$mean,
+      x.css = meansumsq$css,
+      repno = meansumsq$repno,
+      transformed.par = phi,
+      var.select = F
+    )
+  }
+xinit.tpar <-  optim(rep(0, 5), optimfunc, method = "BFGS")$par
+xinit.tpar
+#new optimization
+optimfunc <-
+  function(phi) {
+    -loglikelihood(
+      x.mean = meansumsq$mean,
+      x.css = meansumsq$css,
+      repno = meansumsq$repno,
+      transformed.par = c(xinit.tpar[1:4], phi)
+    )
+  }
+x.tpar <- c(xinit.tpar[1:4], optim(rep(0, 2), optimfunc, method = "BFGS")$par)
+
+#bclust
+
+bclust.obj <- bclust(as.matrix(META),
+                     transformed.par = x.tpar,
+                     labels = rownames(META))
+dev.off()
+plot(bclust.obj)
+abline(
+  h = bclust.obj$cut,
+  lty = 2,
+  col = "gray",
+  lwd = 3
+)
+#logbayes factors
+viplot(imp(bclust.obj)$var)
+
+#red high #blue low
+ditplot(
+  bclust.obj,
+  #scale = 20,
+  horizbar.plot = T,
+  horizbar.size = 0.1,
+  varimp = imp(bclust.obj)$var,
+  horizbar.distance = -2.5,
+  dendrogram.lwd = 2
+)
+
+
+#logbayes of compounds
+dptplot(
+  bclust.obj,
+  scale = 10,
+  horizbar.plot = T,
+  horizbar.size = 0.1,
+  varimp = imp(bclust.obj)$var,
+  horizbar.distance = -2.5,
+  dendrogram.lwd = 2
+)

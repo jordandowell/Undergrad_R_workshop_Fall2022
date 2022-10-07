@@ -1,0 +1,26 @@
+{
+    "id": "FF94AFAE",
+    "path": "~/Documents/Undergrad_R_workshop_Fall2022/Scripts/Part2_PCA.R",
+    "project_path": "Scripts/Part2_PCA.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1664991747192.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "wn2li41parsme",
+        "Source": "Source",
+        "cursorPosition": "5,20",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1665163492,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1665163492448,
+    "read_only": false,
+    "read_only_alternatives": []
+}
