@@ -8,6 +8,7 @@ library(ggpubr)
 library(dplyr)
 library(vtable)
 library(psych)
+library(bclust)
 #import data
 #import data
 data("gaelle")
@@ -71,6 +72,9 @@ pdf("OUTPUT/Metabolite_IndividualLoading_axes_1_2.pdf")
     mean.point = F
   )
 dev.off()
+
+
+
 #assess cos2 this is a metric of how well the variable is explaned by the component
 
 var <- get_pca_var(Metabolite.PCA)
@@ -94,59 +98,6 @@ dev.off()
 
 
 
-
-
-bf <-
-  ttestBF(formula = reformulate(
-    termlabels = "Genotype",
-    response = colnames(Comparison)[l]
-  ),
-  data = Comparison)
-
-bf.frame <- data.frame(bf)
-chains <- posterior(bf, iterations = 100000)
-chains.frame <- data.frame(unclass(summary(chains)))
-
-
-
-
-
-for (l in 1:43) {
-  trait.range <-
-    range(Comparison[, l])[2] - range(Comparison[, l])[1]
-  
-  Trait <- colnames(Comparison)[l]
-  #bftest has a error but we need the loop to continue
-  bf <-
-    ttestBF(formula = reformulate(
-      termlabels = "Genotype",
-      response = colnames(Comparison)[l]
-    ),
-    data = Comparison)
-  bf.frame <- data.frame(bf)
-  chains <- posterior(bf, iterations = 100000)
-  chains.frame <- data.frame(unclass(summary(chains)))
-  #save results
-  results <- data.frame()
-  results <-
-    cbind(
-      bf.frame$bf,
-      bf.frame$error,
-      (chains.frame$statistics.Mean[2] / abs(trait.range)),
-      (chains.frame$statistics.SD[2] / abs(trait.range)),
-      (chains.frame$quantiles.2.5.[2] / abs(trait.range)),
-      (chains.frame$quantiles.97.5.[2] / abs(trait.range))
-    )
-  row.names(results) <- paste(Trait,row.names(chains.frame[2,]))
-  colnames(results) <-
-    c("BF", "BFerror", "mean", "mean.SD", "quant.2.5", "quant.97.5")
-  BF_TTest_results <- rbind(BF_TTest_results, results)
-}
-#add them to large results file
-
-View(BF_TTest_results)
-
-write.csv(BF_TTest_results, "OUTPUT/BF_TTest_results_violinplots.csv")
 
 
 

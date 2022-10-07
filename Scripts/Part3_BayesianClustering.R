@@ -1,3 +1,14 @@
+
+library(factoextra)
+library(missMDA)
+library(corrplot)
+library(ggfortify)
+library(BayesFactor)
+library(ggpubr)
+library(dplyr)
+library(vtable)
+library(psych)
+library(bclust)
 library(bclust)
 
 #import data
